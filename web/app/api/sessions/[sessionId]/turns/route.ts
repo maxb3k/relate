@@ -6,12 +6,12 @@ const supabase =
     ? createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
     : null;
 
-export async function GET(_req: NextRequest, context: { params: { sessionId: string } }) {
+export async function GET(_req: NextRequest, context: { params: Promise<{ sessionId: string }> }) {
   if (!supabase) {
     return NextResponse.json({ turns: [] });
   }
 
-  const { sessionId } = context.params;
+  const { sessionId } = await context.params;
   const { data, error } = await supabase
     .from("turns")
     .select("id, transcript, response_text, output_audio_url, created_at")
