@@ -1,0 +1,19 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: #f3efe6;
+  --card: #fffef9;
+  --ink: #12263a;
+  --muted: #587291;
+  --accent: #f26b5b;
+  --ok: #57cc99;
+}
+
+body {
+  margin: 0;
+  background: radial-gradient(circle at 20% 20%, #fff7eb, var(--bg));
+  color: var(--ink);
+  font-family: "Avenir Next", "Segoe UI", sans-serif;
+}
