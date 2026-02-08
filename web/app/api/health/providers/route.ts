@@ -96,11 +96,22 @@ async function checkSupabase(): Promise<ProviderCheck> {
   const start = Date.now();
   try {
     const supabase = createClient(url, key);
-    const query = supabase.from("sessions").select("id").limit(1);
-    const { error } = await withTimeout(query, 5000);
+    const abortController = new AbortController();
+    const timeoutId = setTimeout(() => abortController.abort("timeout"), 5000);
+    const result = await supabase
+      .from("sessions")
+      .select("id")
+      .limit(1)
+      .abortSignal(abortController.signal);
+    clearTimeout(timeoutId);
+    const error = result.error;
 
     if (error) {
-      return { status: "error", latencyMs: Date.now() - start, detail: compactErrorDetail(error.message) };
+      return {
+        status: "error",
+        latencyMs: Date.now() - start,
+        detail: compactErrorDetail(error.message || "supabase_query_failed")
+      };
     }
 
     return { status: "ok", latencyMs: Date.now() - start };

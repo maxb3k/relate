@@ -10,7 +10,8 @@ export async function transcribeAudio(audio: Buffer, mimeType: string, filename:
   const sttModel = process.env.ELEVENLABS_STT_MODEL || "scribe_v2";
   const form = new FormData();
   form.append("model_id", sttModel);
-  form.append("file", new Blob([audio], { type: mimeType }), filename);
+  const audioBytes = new Uint8Array(audio);
+  form.append("file", new Blob([audioBytes], { type: mimeType }), filename);
 
   const res = await fetch("https://api.elevenlabs.io/v1/speech-to-text", {
     method: "POST",
