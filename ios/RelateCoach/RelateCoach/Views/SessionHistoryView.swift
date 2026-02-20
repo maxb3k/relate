@@ -4,6 +4,10 @@ struct SessionHistoryView: View {
     @EnvironmentObject private var appState: AppState
     @StateObject private var vm = VoiceSessionViewModel()
 
+    private func coachName(for personaId: String) -> String {
+        appState.personas.first(where: { $0.id == personaId })?.name ?? appState.selectedPersona.name
+    }
+
     var body: some View {
         NavigationStack {
             List(appState.turns) { turn in
@@ -11,7 +15,7 @@ struct SessionHistoryView: View {
                     Text("You: \(turn.transcript)")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
-                    Text("Coach: \(turn.responseText)")
+                    Text("\(coachName(for: turn.personaId)): \(turn.responseText)")
                         .font(.body)
                     Text(turn.createdAt.formatted(date: .omitted, time: .shortened))
                         .font(.caption)

@@ -3,6 +3,7 @@ create table if not exists personas (
   name text not null,
   role text not null,
   tagline text not null,
+  voice_id text not null,
   warmth int not null default 7,
   directness int not null default 7,
   humor int not null default 3,
@@ -15,6 +16,8 @@ create table if not exists personas (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+alter table personas add column if not exists voice_id text;
 
 create table if not exists sessions (
   id uuid primary key,

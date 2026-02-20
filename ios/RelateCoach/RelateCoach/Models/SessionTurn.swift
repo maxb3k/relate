@@ -2,6 +2,7 @@ import Foundation
 
 struct SessionTurn: Codable, Identifiable, Hashable {
     let id: String
+    let personaId: String
     let transcript: String
     let responseText: String
     let audioUrl: String

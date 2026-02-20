@@ -14,7 +14,7 @@ export async function GET(_req: NextRequest, context: { params: Promise<{ sessio
   const { sessionId } = await context.params;
   const { data, error } = await supabase
     .from("turns")
-    .select("id, transcript, response_text, output_audio_url, created_at")
+    .select("id, persona_id, transcript, response_text, output_audio_url, created_at")
     .eq("session_id", sessionId)
     .order("created_at", { ascending: true })
     .limit(50);

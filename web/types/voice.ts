@@ -1,10 +1,11 @@
-export type PersonaId = "ava" | "marcus" | "mina";
+export type PersonaId = string;
 
 export type PersonaProfile = {
   id: PersonaId;
   name: string;
   role: string;
   tagline: string;
+  voiceId: string;
   warmth: number;
   directness: number;
   humor: number;

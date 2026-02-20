@@ -1,5 +1,6 @@
 import AVFoundation
 import Foundation
+import Combine
 
 final class AudioRecorder: NSObject, ObservableObject {
     private var recorder: AVAudioRecorder?

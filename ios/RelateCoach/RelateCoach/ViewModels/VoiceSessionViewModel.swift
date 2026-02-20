@@ -1,4 +1,5 @@
 import Foundation
+import Combine
 
 @MainActor
 final class VoiceSessionViewModel: ObservableObject {
@@ -56,6 +57,7 @@ final class VoiceSessionViewModel: ObservableObject {
 
                 let turn = SessionTurn(
                     id: response.turnId,
+                    personaId: appState.selectedPersona.id,
                     transcript: response.transcript,
                     responseText: response.responseText,
                     audioUrl: response.audioUrl,
@@ -111,6 +113,15 @@ final class VoiceSessionViewModel: ObservableObject {
     func loadHistory(appState: AppState) async {
         do {
             appState.turns = try await apiClient.fetchSessionTurns(sessionId: appState.sessionId)
+        } catch {
+            CrashReporter.shared.capture(error)
+        }
+    }
+
+    func loadPersonas(appState: AppState) async {
+        do {
+            let loaded = try await apiClient.fetchPersonas()
+            appState.applyPersonas(loaded)
         } catch {
             CrashReporter.shared.capture(error)
         }

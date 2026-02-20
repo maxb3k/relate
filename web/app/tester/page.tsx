@@ -10,6 +10,8 @@ type Persona = {
 
 type Turn = {
   id: string;
+  personaId: string;
+  personaName: string;
   transcript: string;
   responseText: string;
   audioUrl: string;
@@ -41,12 +43,45 @@ export default function TesterPage() {
   const recordStartedAtRef = useRef<number>(0);
 
   const persona = useMemo(() => personas.find((p) => p.id === personaId), [personas, personaId]);
+  const personaNameById = useMemo(
+    () => Object.fromEntries(personas.map((p) => [p.id, p.name])),
+    [personas]
+  );
 
   useEffect(() => {
     fetch("/api/personas")
       .then((r) => r.json())
       .then((d) => setPersonas(d.personas || []));
   }, []);
+
+  useEffect(() => {
+    fetch(`/api/sessions/${sessionId}/turns`)
+      .then((r) => r.json())
+      .then((d) => {
+        const loaded = (d.turns || []).map(
+          (t: {
+            id: string;
+            persona_id?: string;
+            transcript: string;
+            response_text: string;
+            output_audio_url: string;
+            created_at?: string;
+          }): Turn => ({
+            id: t.id,
+            personaId: t.persona_id || "unknown",
+            personaName: t.persona_id ? personaNameById[t.persona_id] || t.persona_id : "Coach",
+            transcript: t.transcript || "",
+            responseText: t.response_text || "",
+            audioUrl: t.output_audio_url || "",
+            createdAt: t.created_at || new Date().toISOString()
+          })
+        );
+        setTurns(loaded);
+      })
+      .catch(() => {
+        setTurns([]);
+      });
+  }, [sessionId, personaNameById]);
 
   useEffect(() => {
     void fetch("/api/ping-event", {
@@ -148,6 +183,8 @@ export default function TesterPage() {
 
     const nextTurn: Turn = {
       id: data.turnId,
+      personaId,
+      personaName: persona?.name || "Coach",
       transcript: data.transcript,
       responseText: data.responseText,
       audioUrl: data.audioUrl,
@@ -214,7 +251,7 @@ export default function TesterPage() {
           {turns.map((turn) => (
             <article key={turn.id} className="rounded-xl border border-slate-200 p-3">
               <p className="text-sm text-slate-500">You: {turn.transcript}</p>
-              <p className="mt-2 font-medium">Coach: {turn.responseText}</p>
+              <p className="mt-2 font-medium">{turn.personaName}: {turn.responseText}</p>
               <div className="mt-3 flex items-center gap-3">
                 <audio controls src={turn.audioUrl} className="h-8" />
                 <button

@@ -3,7 +3,7 @@ import { randomUUID } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { captureEvent } from "@/lib/analytics";
 import { generateCoachResponse, synthesizeSpeech, transcribeAudio } from "@/lib/clients";
-import { ensureSession, saveTurn, uploadAudio } from "@/lib/db";
+import { ensureSession, getPersonaProfile, saveTurn, uploadAudio } from "@/lib/db";
 import { DEFAULT_MODELS, getPersona } from "@/lib/personas";
 import { buildSystemPrompt, enforceResponseRules } from "@/lib/prompt";
 import { checkRateLimit, requireSharedSecret } from "@/lib/security";
@@ -50,10 +50,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Missing audio file" }, { status: 400 });
     }
 
-    const persona = getPersona(personaId);
-    const selectedModel = overrideModel || DEFAULT_MODELS[persona.id];
+    const fallbackPersona = getPersona(personaId);
+    await ensureSession(sessionId, fallbackPersona);
+    const persona = await getPersonaProfile(personaId, fallbackPersona);
+    const selectedModel = overrideModel || DEFAULT_MODELS[persona.id] || DEFAULT_MODELS.ava;
 
-    await ensureSession(sessionId, persona);
 
     const inputTurnId = randomUUID();
     const inputExt = (audioFile.name.split(".").pop() || "m4a").toLowerCase();
@@ -76,16 +77,20 @@ export async function POST(req: NextRequest) {
     const sttMs = elapsedMs(sttStart);
 
     const llmStart = nowMs();
-    const systemPrompt = buildSystemPrompt(persona, transcript);
-    const rawResponse = await generateCoachResponse(selectedModel, [
-      { role: "system", content: systemPrompt },
-      { role: "user", content: transcript }
-    ]);
-    const responseText = enforceResponseRules(rawResponse, persona);
+    const transcriptText = transcript.trim();
+    const responseText = transcriptText
+      ? enforceResponseRules(
+          await generateCoachResponse(selectedModel, [
+            { role: "system", content: buildSystemPrompt(persona, transcriptText) },
+            { role: "user", content: transcriptText }
+          ]),
+          persona
+        )
+      : "I did not catch anything yet. Hold the mic and share one sentence about what happened.";
     const llmMs = elapsedMs(llmStart);
 
     const ttsStart = nowMs();
-    const ttsAudioBuffer = await synthesizeSpeech(responseText);
+    const ttsAudioBuffer = await synthesizeSpeech(responseText, persona.voiceId);
     const ttsMs = elapsedMs(ttsStart);
 
     const turnId = randomUUID();

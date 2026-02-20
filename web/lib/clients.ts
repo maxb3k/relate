@@ -44,6 +44,16 @@ export async function transcribeAudio(audio: Buffer, mimeType: string, filename:
 export async function generateCoachResponse(model: string, messages: OpenRouterMessage[]): Promise<string> {
   const base = process.env.OPENROUTER_BASE_URL || "https://openrouter.ai/api/v1";
   const apiKey = requireEnv("OPENROUTER_API_KEY");
+  const sanitizedMessages = messages
+    .map((m) => ({ ...m, content: m.content?.trim() || "" }))
+    .filter((m) => m.content.length > 0);
+
+  if (sanitizedMessages.length === 0) {
+    sanitizedMessages.push({
+      role: "user",
+      content: "Give one short, practical relationship coaching step."
+    });
+  }
 
   const res = await fetch(`${base}/chat/completions`, {
     method: "POST",
@@ -56,7 +66,7 @@ export async function generateCoachResponse(model: string, messages: OpenRouterM
     body: JSON.stringify({
       model,
       temperature: 0.5,
-      messages
+      messages: sanitizedMessages
     })
   });
 
@@ -71,11 +81,14 @@ export async function generateCoachResponse(model: string, messages: OpenRouterM
   return data.choices?.[0]?.message?.content?.trim() || "I hear you. Let us take one small step together.";
 }
 
-export async function synthesizeSpeech(text: string): Promise<Buffer> {
+export async function synthesizeSpeech(text: string, voiceId: string): Promise<Buffer> {
   const key = requireEnv("ELEVENLABS_API_KEY");
-  const voiceId = requireEnv("ELEVENLABS_VOICE_ID");
+  const resolvedVoiceId = voiceId || process.env.ELEVENLABS_VOICE_ID || "";
+  if (!resolvedVoiceId) {
+    throw new Error("Missing ElevenLabs voice ID. Set personas.voice_id or ELEVENLABS_VOICE_ID fallback.");
+  }
 
-  const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
+  const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${resolvedVoiceId}`, {
     method: "POST",
     headers: {
       "xi-api-key": key,

@@ -5,7 +5,7 @@ struct CoachSelectorView: View {
 
     var body: some View {
         NavigationStack {
-            List(PersonaCatalog.all, id: \.id) { persona in
+            List(appState.personas, id: \.id) { persona in
                 Button {
                     appState.selectedPersona = persona
                 } label: {

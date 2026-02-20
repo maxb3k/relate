@@ -1,6 +1,26 @@
 import Foundation
 
 final class APIClient {
+    func fetchPersonas() async throws -> [Persona] {
+        let url = AppConfig.apiBaseURL.appending(path: "/api/personas")
+        var request = URLRequest(url: url)
+        if !AppConfig.apiSharedSecret.isEmpty {
+            request.setValue("Bearer \(AppConfig.apiSharedSecret)", forHTTPHeaderField: "Authorization")
+        }
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse, (200..<300).contains(httpResponse.statusCode) else {
+            throw URLError(.badServerResponse)
+        }
+
+        struct PersonasPayload: Decodable {
+            let personas: [Persona]
+        }
+
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        return try decoder.decode(PersonasPayload.self, from: data).personas
+    }
+
     func sendVoiceTurn(audioURL: URL, personaId: String, sessionId: String, modelOverride: String? = nil, debug: Bool = true) async throws -> VoiceTurnResponse {
         var components = URLComponents(url: AppConfig.apiBaseURL.appending(path: "/api/voice-turn"), resolvingAgainstBaseURL: false)!
         var items: [URLQueryItem] = []
@@ -47,6 +67,7 @@ final class APIClient {
             let turns: [TurnDTO]
             struct TurnDTO: Decodable {
                 let id: String
+                let personaId: String
                 let transcript: String
                 let responseText: String
                 let outputAudioUrl: String
@@ -56,7 +77,14 @@ final class APIClient {
 
         let payload = try decoder.decode(TurnsPayload.self, from: data)
         return payload.turns.map {
-            SessionTurn(id: $0.id, transcript: $0.transcript, responseText: $0.responseText, audioUrl: $0.outputAudioUrl, createdAt: $0.createdAt)
+            SessionTurn(
+                id: $0.id,
+                personaId: $0.personaId,
+                transcript: $0.transcript,
+                responseText: $0.responseText,
+                audioUrl: $0.outputAudioUrl,
+                createdAt: $0.createdAt
+            )
         }
     }
 

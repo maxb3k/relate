@@ -69,5 +69,8 @@ struct HomeView: View {
             Spacer()
         }
         .padding()
+        .task {
+            await vm.loadPersonas(appState: appState)
+        }
     }
 }
